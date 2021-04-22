@@ -98,5 +98,18 @@ exit status 1
 ```
 These are not really .go files, of course - the imports and boilerplate are implicit.
 
+You _can_ include a proper Go file using `-i`:
 
+```sh
+grun$ cat answer.go
+package main
 
+func answer() int {
+	return 42
+}
+grun$ grun -e 'answer()' -i answer.go
+42
+```
+
+Finally, after importing new packages that you would like to make available to **grun**,
+you will need to run `grun -r` to refresh the package list.
