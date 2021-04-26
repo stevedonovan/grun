@@ -185,7 +185,7 @@ func main() {
 		mods = append(mods, "log.")
 	}
 	mods = dedupStrings(mods)
-q	mods = removeStrings(mods,receivers)
+	mods = removeStrings(mods,receivers)
 	if *verbose {
 		fmt.Println("modules", mods)
 	}
