@@ -18,6 +18,7 @@ type Data struct {
 	Lines   []string
 	Expr    string
 	Json    bool
+	Flat    bool
 	Args    bool
 }
 
@@ -36,7 +37,9 @@ func marshal(data interface{}) (string,error) {
 	var b bytes.Buffer
     enc := json.NewEncoder(&b)
     enc.SetEscapeHTML(false)
+	{{if not .Flat}}
 	enc.SetIndent("","  ")
+	{{end}}
     if e := enc.Encode(data); e != nil {
 		return "", e
 	}
@@ -57,12 +60,11 @@ func main() {
 	for _,val := range vals {
 		b,e := marshal(&val)
 		if e == nil {
-			fmt.Print(string(b)," ")
+			fmt.Print(string(b))
 		} else {
 			fmt.Println("cannot convert",val,"to JSON: ",e)
 		}
 	}
-	fmt.Println()
 	{{else}}
 	fmt.Println({{.Expr}})
 	{{end}}
@@ -73,7 +75,8 @@ func main() {
 var (
 	expr     = flag.String("e", "", "expression to evaluate")
 	verbose  = flag.Bool("v", false, "verbose mode")
-	json_out = flag.Bool("j", false, "JSON output")
+	json_out = flag.Bool("j", false, "Pretty JSON output")
+	json_flat = flag.Bool("J", false, "Flat JSON output")
 	file     = flag.String("f", "", "file to run")
 	rebuild = flag.Bool("r",false,"rebuild package list")
 	infile = flag.String("i","","Go file to link in")
@@ -105,6 +108,9 @@ func main() {
 		_, e := Packages(true)
 		check(e)
 		return
+	}
+	if *json_flat {
+		*json_out = true
 	}
 	rx := regexp.MustCompile
 	
@@ -187,7 +193,12 @@ func main() {
 		imports = append(imports, m)
 	}
 	data := Data{
-		Imports: imports, Expr: expression, Lines: lines, Json: *json_out, Args: uses_args,
+		Imports: imports,
+		Expr: expression,
+		Lines: lines,
+		Json: *json_out,
+		Flat: *json_flat,
+		Args: uses_args,
 	}
 	tmpl, err := template.
 		New("test").
