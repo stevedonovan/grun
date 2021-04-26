@@ -146,6 +146,7 @@ func main() {
 	uses_args := rx(`\bargs\b`).MatchString(final)
 	expression := final
 	auto_log := false
+	receivers := []string{}
 	// check if there are statements before the expression, and extract as lines...
 	if strings.Contains(final, ";") {
 		lines = append(lines, strings.Split(final, ";")...)
@@ -153,16 +154,21 @@ func main() {
 		expression = strings.TrimSpace(lines[last])
 		extra := lines[0:last]
 		// trim, and automatically insert error checks if assignment looks like an error
-		assign := rx(`,(e\w*)\s*:=`)
+		assignVarError := rx(`([a-z]\w*)(,([a-z]\w*))?\s*:=`)
 		lines = []string{}
 		for _, l := range extra {
 			l = strings.TrimSpace(l)
-			matches := assign.FindStringSubmatch(l)
+			matches := assignVarError.FindStringSubmatch(l)
 			lines = append(lines, l)
 			if len(matches) > 0 {
-				v := matches[1]
-				lines = append(lines, fmt.Sprintf("if %s != nil { log.Fatal(%s) }", v, v))
-				auto_log = true
+				// important that any declared vars are not considered packages!
+				receivers = append(receivers,matches[1]+".")
+				// If an error is returned, handle it implicitly...
+				err := matches[3]
+				if strings.HasPrefix(err,"e") {
+					lines = append(lines, fmt.Sprintf("if %s != nil { log.Fatal(%s) }", err, err))
+					auto_log = true
+				}
 			}
 		}
 	}
@@ -179,6 +185,7 @@ func main() {
 		mods = append(mods, "log.")
 	}
 	mods = dedupStrings(mods)
+q	mods = removeStrings(mods,receivers)
 	if *verbose {
 		fmt.Println("modules", mods)
 	}

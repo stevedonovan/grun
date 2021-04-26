@@ -23,11 +23,11 @@ func Exec(exe string, args ...string) (stdout string, stderr string, err error) 
 	return
 }
 
-func dedupStrings(intSlice []string) []string {
+func dedupStrings(slice []string) []string {
 	keys := make(map[string]bool)
 	list := []string{}
 
-	for _, entry := range intSlice {
+	for _, entry := range slice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
 			list = append(list, entry)
@@ -36,13 +36,34 @@ func dedupStrings(intSlice []string) []string {
 	return list
 }
 
-func contains(haystack []string, needle string) bool {
-	for _, s := range haystack {
-		if s == needle {
-			return true
+// good old https://gobyexample.com/collection-functions
+func filter(vs []string, f func(string) bool) []string {
+	vsf := make([]string, 0)
+	for _, v := range vs {
+		if f(v) {
+			vsf = append(vsf, v)
 		}
 	}
-	return false
+	return vsf
+}
+
+func index(vs []string, t string) int {
+	for i, v := range vs {
+		if v == t {
+			return i
+		}
+	}
+	return -1
+}
+
+func removeStrings(slice, strings []string) []string {
+	return filter(slice,func(s string) bool {
+		return index(strings,s) == -1
+	})
+}
+
+func contains(haystack []string, needle string) bool {
+	return index(haystack, needle) >= 0
 }
 
 func copyFile(src, dst string) error {
