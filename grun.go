@@ -73,18 +73,18 @@ func main() {
 `
 
 var (
-	expr     = flag.String("e", "", "expression to evaluate")
-	verbose  = flag.Bool("v", false, "verbose mode")
-	json_out = flag.Bool("j", false, "Pretty JSON output")
+	expr      = flag.String("e", "", "expression to evaluate")
+	verbose   = flag.Bool("v", false, "verbose mode")
+	json_out  = flag.Bool("j", false, "Pretty JSON output")
 	json_flat = flag.Bool("J", false, "Flat JSON output")
-	file     = flag.String("f", "", "file to run")
-	rebuild = flag.Bool("r",false,"rebuild package list")
-	infile = flag.String("i","","Go file to link in")
+	file      = flag.String("f", "", "file to run")
+	rebuild   = flag.Bool("r", false, "rebuild package list")
+	infile    = flag.String("i", "", "Go file to link in")
 )
 
 var (
-	tmpDir,_ = ioutil.TempDir("", "grun")
-	tmpFile = filepath.Join(tmpDir,"tmp.go")
+	tmpDir, _ = ioutil.TempDir("", "grun")
+	tmpFile   = filepath.Join(tmpDir, "tmp.go")
 )
 
 func check(e error) {
@@ -113,7 +113,7 @@ func main() {
 		*json_out = true
 	}
 	rx := regexp.MustCompile
-	
+
 	if *expr == "" && *file == "" {
 		log.Fatal("provide expression with -e or file to run with -f")
 	}
@@ -122,8 +122,12 @@ func main() {
 		if e != nil {
 			log.Fatal("cannot read ", *file, " error ", e)
 		}
-		as_lines := strings.ReplaceAll(string(contents), "\n", ";")
-		*expr = rx(`//[^;]*;`).ReplaceAllString(as_lines,"")
+		// line comments must begin the line
+		slashSlash := rx(`^\s*//.*`)
+		lines := filter(strings.Split(string(contents),"\n"),func(s string) bool {
+			return ! slashSlash.MatchString(s)
+		})
+		*expr = strings.Join(lines,";")
 	}
 	packages, e := Packages(false)
 	check(e)
@@ -154,7 +158,7 @@ func main() {
 		expression = strings.TrimSpace(lines[last])
 		extra := lines[0:last]
 		// trim, and automatically insert error checks if assignment looks like an error
-		assignVarError := rx(`([a-z]\w*)(,([a-z]\w*))?\s*:=`)
+		assignVarError := rx(`([a-z]\w*)(,([a-z_]\w*))?\s*:=`)
 		lines = []string{}
 		for _, l := range extra {
 			l = strings.TrimSpace(l)
@@ -162,10 +166,10 @@ func main() {
 			lines = append(lines, l)
 			if len(matches) > 0 {
 				// important that any declared vars are not considered packages!
-				receivers = append(receivers,matches[1]+".")
+				receivers = append(receivers, matches[1]+".")
 				// If an error is returned, handle it implicitly...
 				err := matches[3]
-				if strings.HasPrefix(err,"e") {
+				if strings.HasPrefix(err, "e") {
 					lines = append(lines, fmt.Sprintf("if %s != nil { log.Fatal(%s) }", err, err))
 					auto_log = true
 				}
@@ -176,7 +180,7 @@ func main() {
 	mods := rx(`\b[a-z]\w+\.`).FindAllString(final, -1)
 	mods = append(mods, "fmt.")
 	if uses_args {
-		mods = append(mods,"os.")
+		mods = append(mods, "os.")
 	}
 	if *json_out {
 		mods = append(mods, "json.", "bytes.")
@@ -185,7 +189,7 @@ func main() {
 		mods = append(mods, "log.")
 	}
 	mods = dedupStrings(mods)
-	mods = removeStrings(mods,receivers)
+	mods = removeStrings(mods, receivers)
 	if *verbose {
 		fmt.Println("modules", mods)
 	}
@@ -193,7 +197,7 @@ func main() {
 	imports := []string{}
 	for _, m := range mods {
 		m = strings.Trim(m, ".")
-		full,ok := packages[m]
+		full, ok := packages[m]
 		if ok {
 			m = full
 		}
@@ -201,11 +205,11 @@ func main() {
 	}
 	data := Data{
 		Imports: imports,
-		Expr: expression,
-		Lines: lines,
-		Json: *json_out,
-		Flat: *json_flat,
-		Args: uses_args,
+		Expr:    expression,
+		Lines:   lines,
+		Json:    *json_out,
+		Flat:    *json_flat,
+		Args:    uses_args,
 	}
 	tmpl, err := template.
 		New("test").
@@ -215,19 +219,18 @@ func main() {
 	check(e)
 	check(tmpl.Execute(f, data))
 	check(f.Close())
-	args := []string{"run",tmpFile}
+	args := []string{"run", tmpFile}
 	if *infile != "" {
-		dest := filepath.Join(tmpDir,filepath.Base(*infile))
-		e := copyFile(*infile,dest)
+		dest := filepath.Join(tmpDir, filepath.Base(*infile))
+		e := copyFile(*infile, dest)
 		check(e)
-		args = append(args,dest)
+		args = append(args, dest)
 		defer os.Remove(dest)
 	}
-	args = append(args,"--")
-	args = append(args,remainingArgs...)
-	stdout,stderr,e := Exec("go",args...)
+	args = append(args, "--")
+	args = append(args, remainingArgs...)
+	stdout, stderr, e := Exec("go", args...)
 	fmt.Print(stdout)
 	fmt.Fprint(os.Stderr, stderr)
 	check(e)
 }
-

@@ -57,8 +57,8 @@ func index(vs []string, t string) int {
 }
 
 func removeStrings(slice, strings []string) []string {
-	return filter(slice,func(s string) bool {
-		return index(strings,s) == -1
+	return filter(slice, func(s string) bool {
+		return index(strings, s) == -1
 	})
 }
 
