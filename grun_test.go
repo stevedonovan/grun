@@ -49,5 +49,5 @@ func TestExprWithStatements(t *testing.T) {
 
 func TestExprWithMultipleReturns(t *testing.T) {
 	stdout, stderr := grunExpr(`m := R("^[a-z]\\d+").MatchString;  m("k243 "), m(" v50")`, false)
-	compareResults(t, "true false", stdout, stderr)
+	compareResults(t, "true\nfalse", stdout, stderr)
 }

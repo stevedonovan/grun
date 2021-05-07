@@ -20,6 +20,7 @@ type Data struct {
 	Json    bool
 	Flat    bool
 	Args    bool
+	Go 		bool
 }
 
 const templ = `package main
@@ -29,10 +30,11 @@ import (
 {{end}}
 )
 
-{{- if .Json}}
 func vararg(vv ...interface{}) []interface{} {
 	return vv
 }
+
+{{- if .Json}}
 func marshal(data interface{}) (string,error) {
 	var b bytes.Buffer
     enc := json.NewEncoder(&b)
@@ -58,19 +60,21 @@ func main() {
 	{{- .}}
 	{{end}}
 	{{- if .Expr}}
-	{{- if .Json}}
 	vals := vararg({{.Expr}})
 	for _,val := range vals {
+		{{- if .Json}}
 		b,e := marshal(&val)
 		if e == nil {
 			fmt.Print(string(b))
 		} else {
 			fmt.Println("cannot convert",val,"to JSON: ",e)
 		}
+		{{else if .Go}}
+		fmt.Printf("%#v\n",val)
+		{{else}}
+		fmt.Println(val)
+		{{end}}
 	}
-	{{else}}
-	fmt.Println({{.Expr}})
-	{{end}}
 	{{end}}
 }
 `
@@ -78,6 +82,7 @@ func main() {
 var (
 	expr      = flag.String("e", "", "expression to evaluate")
 	verbose   = flag.Bool("v", false, "verbose mode")
+	go_out   = flag.Bool("G", false, "use %#v format")
 	json_out  = flag.Bool("j", false, "Pretty JSON output")
 	json_flat = flag.Bool("J", false, "Flat JSON output")
 	file      = flag.String("f", "", "file to run")
@@ -213,6 +218,7 @@ func main() {
 		Json:    *json_out,
 		Flat:    *json_flat,
 		Args:    uses_args,
+		Go: *go_out,
 	}
 	tmpl, err := template.
 		New("test").

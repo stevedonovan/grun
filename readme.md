@@ -53,7 +53,8 @@ Expressions may of course return multiple results, commonly for error returns:
 
 ```sh
 $ grun -e 'os.Open("nada.txt")'
-<nil> open nada.txt: no such file or directory
+<nil>
+open nada.txt: no such file or directory
 $ grun -j -e 'os.Open("nada.txt")'
 null
  {
@@ -63,13 +64,23 @@ null
 }
 ```
 
+There is another option, which is to print the result(s) using the '%#v' format, as
+Go expressions:
+
+```sh
+$ grun -G -e 'os.Open("nada.txt")'
+(*os.File)(nil)
+&fs.PathError{Op:"open", Path:"nada.txt", Err:0x2}
+```
+
 We resolve nested packages like `io/ioutil` using the package map:
 
 ```sh
 $ cat tmp.txt
 hello dolly
 $ grun -e 'ioutil.ReadFile("tmp.txt")'
-[104 101 108 108 111 32 100 111 108 108 121 10] <nil>
+[104 101 108 108 111 32 100 111 108 108 121 10]
+ <nil>
 ```
 
 (These are not _always_ unique but it's good enough for now)
