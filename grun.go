@@ -47,6 +47,9 @@ func marshal(data interface{}) (string,error) {
 }
 {{- end}}
 
+type M = map[string]interface{}
+type S = []interface{}
+
 func main() {
 	{{- if .Args}}
 	args := os.Args[1:]

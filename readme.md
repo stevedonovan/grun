@@ -37,6 +37,18 @@ $ grun -e 'M.Sin(1.2)'
 0.9320390859672264
 ```
 
+In addition, these type aliases are defined:
+
+```go
+type M = map[string]interface{}
+type S = []interface{}
+```
+So we can say:
+```sh
+grun$ grun -e 'M{"one":1,"two":"zwei","three":S{1,2,3}}'
+map[one:1 three:[1 2 3] two:zwei]
+```
+
 Expressions may of course return multiple results, commonly for error returns:
 
 ```sh
